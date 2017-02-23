@@ -1,19 +1,14 @@
 <RCC>
     <qresource prefix="/">
-        <file>image/aip.png</file>
-        <file>image/arrow_down.ico</file>
-        <file>image/arrow_up.ico</file>
-        <file>image/M1S0.png</file>
-        <file>image/M1S1.png</file>
-        <file>image/M1S1L1.png</file>
-        <file>image/M1S1L2.png</file>
-        <file>image/M1S1L3.png</file>
-        <file>image/M1S2.png</file>
-        <file>image/M1S3.png</file>
-        <file>image/M1S4.png</file>
-        <file>image/None.png</file>
-        <file>image/check_box_1.png</file>
-        <file>image/check_box_2.png</file>
-        <file>css/aip001.css</file>
+        <file>source/file.png</file>
+        <file>source/link.png</file>
+        <file>source/SoftRainBlue.css</file>
+        <file>source/dir.png</file>
+        <file>source/check_1.png</file>
+        <file>source/check_2.png</file>
+        <file>source/check_box_1.png</file>
+        <file>source/check_box_2.png</file>
+        <file>source/radio_1.png</file>
+        <file>source/radio_2.png</file>
     </qresource>
 </RCC>

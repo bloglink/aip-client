@@ -15,10 +15,14 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         CWinClient.cpp \
-    MyTcpThread.cpp
+    MyTcpThread.cpp \
+    CTcpNetwork.cpp \
+    CTcpClient.cpp
 
 HEADERS  += CWinClient.h \
-    MyTcpThread.h
+    MyTcpThread.h \
+    CTcpNetwork.h \
+    CTcpClient.h
 
 FORMS    += CWinClient.ui
 

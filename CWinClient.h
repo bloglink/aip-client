@@ -1,15 +1,21 @@
 #ifndef CWINCLIENT_H
 #define CWINCLIENT_H
 
+#include <QUrl>
+#include <QHttpPart>
 #include <QFile>
 #include <QThread>
 #include <QWidget>
+#include <QListView>
+#include <QDirModel>
+#include <QTreeWidgetItem>
+
 #include <QSettings>
-#include <QCloseEvent>
+#include <QHideEvent>
 #include <QButtonGroup>
 #include <QTableWidgetItem>
 
-#include "MyTcpThread.h"
+#include "CTcpNetwork.h"
 
 #define W_ROW 250
 #define W_COL 6
@@ -35,28 +41,32 @@ public slots:
 
 private slots:
     void WinInit(void);
-    void WinUpdate(QByteArray msg);
-    void KeyInit(void);
+    void BtnInit(void);
     void DatInit(void);
     void DatSave(void);
+    void ItemClick(int r,int c);
+    void ViewClick(QModelIndex);
+    void GetClientFileList(void);
+    void ShowFileList(QByteArray msg);
 
     void TcpInit(void);
-    void TcpStart(void);
     void TcpLogin(void);
-    void TcpLogout(void);
     void TcpGetListMsg(void);
-    void TcpFileLocalPut(void);
-    void TcpFileLocalGet(void);
-    void TcpFileClientPut(void);
-    void TcpFileClientGet(void);
-    void TcpCmdSystem(void);
+    void TcpLocalPut(void);
+    void TcpLocalGet(void);
+    void TcpClientPut(void);
+    void TcpClientGet(void);
+    void TcpCommand(void);
     void TcpDisplay(QString msg);
     void ExcuteCmd(quint16 addr,quint16 cmd,QByteArray msg);
-    void closeEvent(QCloseEvent *e);
+    void hideEvent(QHideEvent *e);
 private:
     QThread *tcp;
     QTimer *timer;
     QSettings *set;
+    bool isList;
+    QString CurrentPath;
+    QList<QTreeWidgetItem*> Items;
 };
 
 #endif // CWINCLIENT_H
