@@ -72,19 +72,15 @@ void Source::updateSqlite()
 {
     mView = new LQSqlTableModel(this, QSqlDatabase::database(sqlName));
     mView->setTable("aip_source");
-    mView->select();
-    if (mView->rowCount() == 0) {
-        insertSqlite();
-        mView->select();
-    }
-    view->setModel(mView);
-    if (mView->columnCount() >= 3) {
-        view->hideColumn(0);
-        QStringList headers;
-        headers << "ID" << "资源名" << "资源解析";
+
+    QStringList headers;
+    headers << "ID" << "资源名" << "资源解析";
+    if (mView->columnCount() >= headers.size()) {
         for (int i=0; i < headers.size(); i++) {
             mView->setHeaderData(i, Qt::Horizontal, headers.at(i));
         }
+        view->setModel(mView);
+        view->hideColumn(0);
     }
 }
 
@@ -143,10 +139,10 @@ void Source::deleteSqlite()
         query.prepare("delete from aip_action where source_id=:id");
         query.bindValue(":id", id);
         query.exec();
+        mView->select();
     } else {
         QMessageBox::warning(this, tr("警告"), tr("请选择一项数据"), QMessageBox::Ok);
     }
-    mView->select();
 }
 
 void Source::changeSqlite()
@@ -178,11 +174,11 @@ void Source::changeSqlite()
             query.bindValue(1, name);
             query.bindValue(2, pass);
             query.exec();
+            mView->select();
         }
     } else {
         QMessageBox::warning(this, tr("警告"), tr("请选择一项数据"), QMessageBox::Ok);
     }
-    mView->select();
 }
 
 bool Source::isNameExists(QString name)

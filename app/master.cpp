@@ -72,23 +72,16 @@ void Master::updateSqlite()
 {
     mView = new LQSqlTableModel(this, QSqlDatabase::database(sqlName));
     mView->setTable("aip_master");
-    mView->select();
-    if (mView->rowCount() == 0) {
-        insertSqlite();
-        mView->select();
-    }
-    view->setModel(mView);
-    if (mView->columnCount() >= 3) {
-        view->hideColumn(0);
-        QStringList headers;
-        headers << "ID" << "用户名" << "密码";
+
+    QStringList headers;
+    headers << "ID" << "用户名" << "密码";
+    if (mView->columnCount() >= headers.size()) {
         for (int i=0; i < headers.size(); i++) {
             mView->setHeaderData(i, Qt::Horizontal, headers.at(i));
         }
+        view->setModel(mView);
+        view->hideColumn(0);
     }
-    //    if (mView->rowCount() > 0) {
-    //        view->hideRow(0);  // 隐藏超级用户
-    //    }
 }
 
 void Master::insertSqlite()
@@ -140,10 +133,11 @@ void Master::deleteSqlite()
         query.prepare("delete from aip_action where master_id=:id");
         query.bindValue(":id", id);
         query.exec();
+
+        mView->select();
     } else {
         QMessageBox::warning(this, tr("警告"), tr("请选择一项数据"), QMessageBox::Ok);
     }
-    mView->select();
 }
 
 void Master::changeSqlite()
@@ -175,11 +169,12 @@ void Master::changeSqlite()
             query.bindValue(1, name);
             query.bindValue(2, pass);
             query.exec();
+
+            mView->select();
         }
     } else {
         QMessageBox::warning(this, tr("警告"), tr("请选择一项数据"), QMessageBox::Ok);
     }
-    mView->select();
 }
 
 bool Master::isNameExists(QString name)

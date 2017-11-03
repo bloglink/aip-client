@@ -1,3 +1,11 @@
+/*******************************************************************************
+ * Copyright [2017]   <青岛艾普智能仪器有限公司>
+ * All rights reserved.
+ *
+ * version:     0.1
+ * author:      zhaonanlin
+ * brief:       二代网络客户端
+*******************************************************************************/
 #include "tcpclient.h"
 
 TcpClient::TcpClient(QWidget *parent)
@@ -72,7 +80,7 @@ void TcpClient::initSocket()
 {
     tcp = new TcpSocket(this);
     connect(tcp, SIGNAL(command(quint16, quint16, QByteArray)),
-            this, SLOT(recvNetMsg(quint16,quint16,QByteArray)));
+            this, SLOT(recvNetMsg(quint16, quint16, QByteArray)));
 }
 
 void TcpClient::initVersion()

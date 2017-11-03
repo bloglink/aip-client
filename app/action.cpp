@@ -57,11 +57,9 @@ void Action::updateSqlite()
 {
     mAction = new LQSqlTableModel(this, QSqlDatabase::database(sqlName));
     mAction->setTable("aip_action");
-    mAction->select();
 
     mMaster = new LQSqlTableModel(this, QSqlDatabase::database(sqlName));
     mMaster->setTable("aip_master");
-    mMaster->select();
     master->setModel(mMaster);
     if (mMaster->columnCount() >= 3) {
         master->hideColumn(0);
@@ -72,13 +70,9 @@ void Action::updateSqlite()
             mMaster->setHeaderData(i, Qt::Horizontal, headers.at(i));
         }
     }
-    //    if (mMaster->rowCount() > 0) {
-    //        master->hideRow(0);  // 隐藏超级用户
-    //    }
 
     mSource = new LQSqlTableModel(this, QSqlDatabase::database(sqlName));
     mSource->setTable("aip_source");
-    mSource->select();
     mSource->setCheckable(1);
     source->setModel(mSource);
     if (mSource->columnCount() >= 3) {
@@ -150,7 +144,6 @@ void Action::changeAction(QModelIndex index)
 void Action::recvAppShow(QString win)
 {
     if (win == this->objectName()) {
-        mAction->select();
         mMaster->select();
         mSource->select();
     }

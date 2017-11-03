@@ -147,12 +147,14 @@ void Online::initLayout()
 
 void Online::clickTree(QModelIndex index)
 {
+    if (index.row() < 0)
+        return;
     QString temp = onlineTree->currentItem()->text(1);
     QString name = onlineTree->currentItem()->text(0);
     if (temp == "文件夹") {
         int t = currentPath.lastIndexOf("/");
         if (name == ".." && t > 0) {
-            currentPath = currentPath.mid(0,t);
+            currentPath = currentPath.mid(0, t);
         } else if (name == ".." && t == 0) {
             currentPath = "/";
         } else {
@@ -254,16 +256,17 @@ void Online::updateSqlite()
 {
     mOnlineView = new LQSqlTableModel(this, QSqlDatabase::database(sqlName));
     mOnlineView->setTable("aip_online");
-    mOnlineView->select();
     QStringList headers;
     headers << "记录编号" << "设备编号" << "设备地址" << "出厂编号"
             << "网络端口" << "网络地址" << "记录时间" << "设备状态" << "软件版本";
-    for (int i=0; i < qMin(headers.size(), mOnlineView->columnCount()); i++) {
-        mOnlineView->setHeaderData(i, Qt::Horizontal, headers.at(i));
+    if (mOnlineView->columnCount() >= headers.size()) {
+        for (int i=0; i < qMin(headers.size(), mOnlineView->columnCount()); i++) {
+            mOnlineView->setHeaderData(i, Qt::Horizontal, headers.at(i));
+        }
+        onlineView->setModel(mOnlineView);
+        onlineView->hideColumn(0);
+        onlineView->hideColumn(1);
     }
-    onlineView->setModel(mOnlineView);
-    onlineView->hideColumn(0);
-    onlineView->hideColumn(1);
 
     mDeviceView = new LQSqlTableModel(this, QSqlDatabase::database(sqlName));
     mDeviceView->setTable("aip_device");
@@ -286,8 +289,8 @@ void Online::recvDisplay(QString msg)
     qDebug() << msg;
     if (msg.startsWith("./")) {
         QString temp = msg;
-        QStringList FileList = temp.split("\n",QString::SkipEmptyParts);
-        for (int i=0; i<FileList.size(); i++) {
+        QStringList FileList = temp.split("\n", QString::SkipEmptyParts);
+        for (int i=0; i < FileList.size(); i++) {
             QString t = FileList.at(i);
             if (t.endsWith("@") || t.endsWith("|") || t.endsWith("=") || t == "./") {
                 continue;

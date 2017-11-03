@@ -62,46 +62,52 @@ void Device::initDevice(QSqlDatabase db)
 {
     mDeviceView = new QSqlTableModel(this, db);
     mDeviceView->setTable("aip_device");
-    mDeviceView->select();
+
     QStringList headers;
     headers << "设备编号" << "设备地址" << "出厂编号" << "设备型号"
             << "评审编号" << "出厂日期" << "客户名称";
-    for (int i=0; i < qMin(headers.size(), mDeviceView->columnCount()); i++) {
-        mDeviceView->setHeaderData(i, Qt::Horizontal, headers.at(i));
+    if (mDeviceView->columnCount() >= headers.size()) {
+        for (int i=0; i < qMin(headers.size(), mDeviceView->columnCount()); i++) {
+            mDeviceView->setHeaderData(i, Qt::Horizontal, headers.at(i));
+        }
+        deviceView->setModel(mDeviceView);
+        deviceView->hideColumn(0);
     }
-    deviceView->setModel(mDeviceView);
-    deviceView->hideColumn(0);
 }
 
 void Device::initRepair(QSqlDatabase db)
 {
     mRepairView = new QSqlTableModel(this, db);
     mRepairView->setTable("aip_repair");
-    QStringList headers;
-    headers << "记录编号" << "设备编号" << "记录人" << "情况描述"
-            << "维修描述" << "维修日期" << "联系人" << "联系电话";
-    for (int i=0; i < qMin(headers.size(), mRepairView->columnCount()); i++) {
-        mRepairView->setHeaderData(i, Qt::Horizontal, headers.at(i));
+    if (mRepairView->columnCount() >= 8) {
+        QStringList headers;
+        headers << "记录编号" << "设备编号" << "记录人" << "情况描述"
+                << "维修描述" << "维修日期" << "联系人" << "联系电话";
+        for (int i=0; i < qMin(headers.size(), mRepairView->columnCount()); i++) {
+            mRepairView->setHeaderData(i, Qt::Horizontal, headers.at(i));
+        }
+        repairView->setModel(mRepairView);
+        repairView->hideColumn(0);
+        repairView->hideColumn(1);
     }
-    repairView->setModel(mRepairView);
-    repairView->hideColumn(0);
-    repairView->hideColumn(1);
 }
 
 void Device::initRecord(QSqlDatabase db)
 {
     mRecordView = new QSqlTableModel(this, db);
     mRecordView->setTable("aip_record");
-    QStringList headers;
-    headers << "记录编号" << "设备编号" << "设备地址" << "出厂编号"
-            << "网络端口" << "网络地址" << "记录时间" << "设备状态" << "软件版本";
-    for (int i=0; i < qMin(headers.size(), mRecordView->columnCount()); i++) {
-        mRecordView->setHeaderData(i, Qt::Horizontal, headers.at(i));
+    if (mRecordView->columnCount() >= 9) {
+        QStringList headers;
+        headers << "记录编号" << "设备编号" << "设备地址" << "出厂编号"
+                << "网络端口" << "网络地址" << "记录时间" << "设备状态" << "软件版本";
+        for (int i=0; i < qMin(headers.size(), mRecordView->columnCount()); i++) {
+            mRecordView->setHeaderData(i, Qt::Horizontal, headers.at(i));
+        }
+        recordView->setModel(mRecordView);
+        recordView->hideColumn(0);
+        recordView->hideColumn(1);
+        recordView->hideColumn(4);
     }
-    recordView->setModel(mRecordView);
-    recordView->hideColumn(0);
-    recordView->hideColumn(1);
-    recordView->hideColumn(4);
 }
 
 void Device::clickDevice(QModelIndex index)

@@ -1,3 +1,11 @@
+/*******************************************************************************
+ * Copyright [2017]   <青岛艾普智能仪器有限公司>
+ * All rights reserved.
+ *
+ * version:     0.1
+ * author:      zhaonanlin
+ * brief:       二代网络客户端
+*******************************************************************************/
 #ifndef TCPCLIENT_H
 #define TCPCLIENT_H
 
@@ -30,7 +38,7 @@ class TcpClient : public QWidget
     Q_OBJECT
 
 public:
-    TcpClient(QWidget *parent = 0);
+    explicit TcpClient(QWidget *parent = 0);
     ~TcpClient();
 signals:
     void sendAppShow(QString win);

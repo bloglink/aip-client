@@ -207,7 +207,8 @@ double System::getAction(QString masterName, QString sourceName)
     mSource->select();
     QString sourceId = mSource->index(0, 0).data().toString();
 
-    mAction->setFilter(QObject::tr("master_id='%1' and source_id='%2'").arg(masterId).arg(sourceId));
+    mAction->setFilter(QObject::tr("master_id='%1' and source_id='%2'").
+                       arg(masterId).arg(sourceId));
     mAction->select();
 
     double id = mAction->index(0, 3).data().toDouble();
