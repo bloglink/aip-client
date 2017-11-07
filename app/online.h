@@ -17,6 +17,7 @@
 #include <QTableView>
 #include <QHeaderView>
 #include <QSqlError>
+#include <QSqlRecord>
 #include <QSqlDatabase>
 #include <QSqlTableModel>
 #include <QFileSystemModel>
@@ -35,6 +36,7 @@
 #include "lqsqltablemodel.h"
 #include "lqstandarditem.h"
 #include "lqreadonlyitem.h"
+#include "lqheadview.h"
 #define ONLINE_REC_UUID 0x00
 #define ONLINE_DEV_UUID 0x01
 #define ONLINE_DEV_ADDR 0x02
@@ -67,10 +69,12 @@ private slots:
     void clickTree(QModelIndex index);
     void clickFile(QModelIndex index);
     void clickOnline(QModelIndex index);
+    void updateFile();
     void recvFileHead();
     void sendShellCmd();
     void sendFileHead();
     void updateSqlite();
+    void updateFilter(int col, QString msg);
     void recvAppShow(QString win);
     void recvSqlOpen(QString sql);
     void recvDisplay(QString msg);
@@ -97,6 +101,7 @@ private:
     QString sqlName;
     QString currentPort;
     QString currentPath;
+    QMap<int, QString> filters;
 };
 
 #endif // ONLINE_H

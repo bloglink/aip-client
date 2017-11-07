@@ -31,7 +31,9 @@ HEADERS += \
     app/tcpclient.h \
     app/tcpsocket.h \
     app/online.h \
-    app/device.h
+    app/device.h \
+    app/lqheadview.h \
+    app/lqlineedit.h
 
 SOURCES += \
     app/action.cpp \
@@ -54,7 +56,9 @@ SOURCES += \
     app/tcpclient.cpp \
     app/tcpsocket.cpp \
     app/online.cpp \
-    app/device.cpp
+    app/device.cpp \
+    app/lqheadview.cpp \
+    app/lqlineedit.cpp
 
 RC_FILE += qrc/ico.rc
 

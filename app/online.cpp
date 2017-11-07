@@ -26,12 +26,12 @@ void Online::initUI()
 void Online::initView()
 {
     onlineView = new QTableView(this);
-    onlineView->setSortingEnabled(true);
+
     onlineView->setItemDelegate(new LQReadOnlyItem());
+    onlineView->setSortingEnabled(true);
     onlineView->horizontalHeader()->setHighlightSections(false);
     onlineView->setSelectionBehavior(QAbstractItemView::SelectRows);
     onlineView->setSelectionMode(QAbstractItemView::SingleSelection);
-    onlineView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     connect(onlineView, SIGNAL(clicked(QModelIndex)), this, SLOT(clickOnline(QModelIndex)));
 }
 
@@ -264,6 +264,12 @@ void Online::updateSqlite()
             mOnlineView->setHeaderData(i, Qt::Horizontal, headers.at(i));
         }
         onlineView->setModel(mOnlineView);
+
+        LQHeadView *head = new LQHeadView(Qt::Horizontal, this);
+        connect(head, SIGNAL(filterChanged(int, QString)), this, SLOT(updateFilter(int, QString)));
+        head->createFilters(headers.size(), true);
+        onlineView->setHorizontalHeader(head);
+        onlineView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
         onlineView->hideColumn(0);
         onlineView->hideColumn(1);
     }
@@ -272,10 +278,29 @@ void Online::updateSqlite()
     mDeviceView->setTable("aip_device");
 }
 
+void Online::updateFilter(int col, QString msg)
+{
+    QSqlRecord record = mOnlineView->record();
+    QString modelFilter;
+    filters[col] = msg;
+    for (int i=0; i < record.count(); ++i)  {
+        if (i != 0)  {
+            modelFilter += " and ";
+        }
+        QString field = record.fieldName(i);
+        QString subFilter = QString("%1 LIKE '%%%2%%'").arg(field).arg(filters[i]);
+        modelFilter += subFilter;
+    }
+    mOnlineView->setFilter(modelFilter);
+    mOnlineView->select();
+}
+
 void Online::recvAppShow(QString win)
 {
-    if (win == this->objectName())
+    if (win == this->objectName()) {
         mOnlineView->select();
+        updateFile();
+    }
 }
 
 void Online::recvSqlOpen(QString sql)
