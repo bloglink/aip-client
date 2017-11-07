@@ -44,20 +44,8 @@ void Online::initTree()
 
 void Online::initFile()
 {
-    mOnlineFile = new QFileSystemModel(this);
-    mOnlineFile->setFilter(QDir::AllEntries | QDir::NoDotAndDotDot);
-
     onlineFile = new QTreeView(this);
-    onlineFile->setModel(mOnlineFile);
-#ifdef __linux__
-    onlineFile->setRootIndex(mOnlineFile->setRootPath("/home/link/smbtmp/"));
-#else
-    onlineFile->setRootIndex(mOnlineFile->setRootPath("\\\\192.168.1.55\\share\\二代升级文件"));
-#endif
-    onlineFile->setHeaderHidden(true);
-    onlineFile->hideColumn(3);
-    onlineFile->hideColumn(2);
-    onlineFile->hideColumn(1);
+    updateFile();
     connect(onlineFile, SIGNAL(clicked(QModelIndex)), this, SLOT(clickFile(QModelIndex)));
 }
 
@@ -208,6 +196,23 @@ void Online::clickOnline(QModelIndex index)
     recvFile->setText(currentPath);
     sendShellCmd();
     shellCmd->setText("mv network/userinfo.txt nandflash");
+}
+
+void Online::updateFile()
+{
+    mOnlineFile = new QFileSystemModel(this);
+    mOnlineFile->setFilter(QDir::AllEntries | QDir::NoDotAndDotDot);
+    onlineFile->clearSelection();
+    onlineFile->setModel(mOnlineFile);
+#ifdef __linux__
+    onlineFile->setRootIndex(mOnlineFile->setRootPath("/home/link/smbtmp/"));
+#else
+    onlineFile->setRootIndex(mOnlineFile->setRootPath("\\\\192.168.1.55\\share\\二代升级文件"));
+#endif
+    onlineFile->setHeaderHidden(true);
+    onlineFile->hideColumn(3);
+    onlineFile->hideColumn(2);
+    onlineFile->hideColumn(1);
 }
 
 void Online::recvFileHead()
