@@ -79,17 +79,17 @@ void Online::initCtrl()
     QPushButton *btnShellCmd = new QPushButton("发送命令", this);
     connect(btnShellCmd, SIGNAL(clicked(bool)), this, SLOT(sendShellCmd()));
     shellCmd = new QLineEdit(this);
-    connect(shellCmd, SIGNAL(editingFinished()), this, SLOT(sendShellCmd()));
+    connect(shellCmd, SIGNAL(returnPressed()), this, SLOT(sendShellCmd()));
 
     QPushButton *btnSendFile = new QPushButton("发送文件", this);
     connect(btnSendFile, SIGNAL(clicked(bool)), this, SLOT(sendFileHead()));
     sendFile = new QLineEdit(this);
-    connect(sendFile, SIGNAL(editingFinished()), this, SLOT(sendFileHead()));
+    connect(sendFile, SIGNAL(returnPressed()), this, SLOT(sendFileHead()));
 
     QPushButton *btnRecvFile = new QPushButton("接收文件", this);
     connect(btnRecvFile, SIGNAL(clicked(bool)), this, SLOT(recvFileHead()));
     recvFile = new QLineEdit(this);
-    connect(recvFile, SIGNAL(editingFinished()), this, SLOT(recvFileHead()));
+    connect(recvFile, SIGNAL(returnPressed()), this, SLOT(recvFileHead()));
 
     text = new QTextBrowser(this);
 
