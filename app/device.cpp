@@ -71,6 +71,12 @@ void Device::initDevice(QSqlDatabase db)
             mDeviceView->setHeaderData(i, Qt::Horizontal, headers.at(i));
         }
         deviceView->setModel(mDeviceView);
+
+        LQHeadView *head = new LQHeadView(Qt::Horizontal, this);
+        connect(head, SIGNAL(filterChanged(int, QString)), this, SLOT(updateFilter(int, QString)));
+        head->createFilters(headers.size(), true);
+        deviceView->setHorizontalHeader(head);
+        deviceView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
         deviceView->hideColumn(0);
     }
 }
@@ -147,6 +153,23 @@ void Device::updateSqlite()
     initDevice(QSqlDatabase::database(sqlName));
     initRepair(QSqlDatabase::database(sqlName));
     initRecord(QSqlDatabase::database(sqlName));
+}
+
+void Device::updateFilter(int col, QString msg)
+{
+    QSqlRecord record = mDeviceView->record();
+    QString modelFilter;
+    filters[col] = msg;
+    for (int i=0; i < record.count(); ++i)  {
+        if (i != 0)  {
+            modelFilter += " and ";
+        }
+        QString field = record.fieldName(i);
+        QString subFilter = QString("%1 LIKE '%%%2%%'").arg(field).arg(filters[i]);
+        modelFilter += subFilter;
+    }
+    mDeviceView->setFilter(modelFilter);
+    mDeviceView->select();
 }
 
 void Device::recvAppShow(QString win)

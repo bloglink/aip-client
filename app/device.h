@@ -16,6 +16,7 @@
 #include <QTableView>
 #include <QHeaderView>
 #include <QSqlError>
+#include <QSqlRecord>
 #include <QSqlDatabase>
 #include <QSqlTableModel>
 #include <QFileSystemModel>
@@ -29,14 +30,14 @@
 #include "lqsqltablemodel.h"
 #include "lqstandarditem.h"
 #include "lqreadonlyitem.h"
+#include "lqheadview.h"
 
 class Device : public QWidget
 {
     Q_OBJECT
 public:
     explicit Device(QWidget *parent = 0);
-public slots:
-    void updateSqlite();
+
 private slots:
     void initUI();
     void initView();
@@ -46,11 +47,14 @@ private slots:
     void clickDevice(QModelIndex index);
     void initCtrl();
     void saveCtrl();
+    void updateSqlite();
+    void updateFilter(int col, QString msg);
     void recvAppShow(QString win);
     void recvSqlOpen(QString sql);
 private:
     QTableView *deviceView;
     QSqlTableModel *mDeviceView;
+    QMap<int, QString> filters;
 
     QTableView *repairView;
     QSqlTableModel *mRepairView;
