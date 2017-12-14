@@ -8,7 +8,8 @@
 #include <QCloseEvent>
 #include <QButtonGroup>
 #include <QTableWidgetItem>
-
+#include <QFileSystemModel>
+#include <QUrlQuery>
 #include "MyTcpThread.h"
 
 #define W_ROW 250
@@ -35,29 +36,29 @@ signals:
 public slots:
 
 private slots:
-    void WinInit(void);
+    void InitWindows(void);
     void WinUpdate(QByteArray msg);
-    void KeyInit(void);
-    void DatInit(void);
-    void DatSave(void);
-
-    void TcpInit(void);
-    void TcpStart(void);
-    void TcpLogin(void);
-    void TcpLogout(void);
-    void TcpGetListMsg(void);
-    void TcpFileLocalPut(void);
-    void TcpFileLocalGet(void);
-    void TcpFileClientPut(void);
-    void TcpFileClientGet(void);
-    void TcpCmdSystem(void);
-    void TcpDisplay(QString msg);
+    void InitButtons(void);
+    void InitClient(void);
+    void Login(void);
     void ExcuteCmd(quint16 addr,quint16 cmd,QByteArray msg);
-    void closeEvent(QCloseEvent *e);
+    void SendShellCommand(void);
+    void ReadServerFiles(QByteArray msg);
+    void ReadClientFiles(QByteArray msg);
+    void SendLocalFile(void);
+    void SendServerFile(void);
+    void SendClientFile(void);
+    void ReadServerFile(void);
+
+    void on_tabTcp_clicked(const QModelIndex &index);
+    void on_LocalFiles_clicked(const QModelIndex &index);
+    void on_ServerFiles_clicked(const QModelIndex &index);
+    void on_ClientFiles_clicked(const QModelIndex &index);
+
 private:
+    bool isFiles;
     QThread *tcp;
-    QTimer *timer;
-    QSettings *set;
+    QFileSystemModel *files;
 };
 
 #endif // WINCLIENT_H

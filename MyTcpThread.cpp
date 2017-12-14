@@ -9,7 +9,7 @@ MyTcpThread::MyTcpThread(QObject *parent) :
     BytesRead    = 0;
     BytesToRead  = 0;
     BytesToWrite = 0;
-    BytesWritten = 0;
+    TramsmitAddr = ADDR;
 
     QDir *dir = new QDir;
     if (!dir->exists(QString(TMP)))
@@ -29,72 +29,40 @@ MyTcpThread::MyTcpThread(QObject *parent) :
     connect(this,SIGNAL(bytesWritten(qint64)),this,SLOT(PutFileData(qint64)));
     connect(this,SIGNAL(error(QAbstractSocket::SocketError)),this,SLOT(Error(QAbstractSocket::SocketError)));
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.07.16
-  * brief:      网络初始化
-******************************************************************************/
+
 void MyTcpThread::TcpInit()
 {
     count = 0;
-    HostName = set->value("HOST","s.aipuo.com").toString();
-    Version = set->value("VERSION","V0.1").toString();
-    User = set->value("USER","sa@@1234").toString();
-
-    this->connectToHost(HostName, 6000);
+    this->connectToHost("192.168.1.55", 6000);
     timer->start(10000);
-    Display("连接服务器...\n");
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.07.16
-  * brief:      网络退出
-******************************************************************************/
+
 void MyTcpThread::TcpQuit()
 {
     this->close();
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.07.16
-  * brief:      连接成功
-******************************************************************************/
+
 void MyTcpThread::Connected()
 {
-#ifndef LOCAL
-    ExcuteCmd(quint16(ADDR),quint16(ClientPutInit),NULL);
-#else
-    ExcuteCmd(quint16(ADDR),quint16(LocalLogin),NULL);
-#endif
+    QString s = QString("168912000X %1 V-170328").arg(getHardwareAddress());
+    PutBlock(ADDR,GUEST_LOGIN,s.toUtf8());
+    PutBlock(ADDR,ONLINE_DEVICES,NULL);
+    PutBlock(ADDR,SERVER_FILES,"168912000X");
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.07.16
-  * brief:      心跳
-******************************************************************************/
+
 void MyTcpThread::KeepAlive()
 {
     if (this->state() != QAbstractSocket::ConnectedState) {
         TcpInit();
     } else {
-        PutBlock(ADDR,GetHeart,"NULL");
+        PutBlock(ADDR,HEART_BEAT,"NULL");
         count++;
         if (count >6) {
-            Display("服务器无反应，断开连接\n");
             this->abort();
         }
     }
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.07.16
-  * brief:      读取数据
-******************************************************************************/
+
 void MyTcpThread::GetBlock()
 {
     quint16 addr;
@@ -120,12 +88,7 @@ void MyTcpThread::GetBlock()
         BlockSize = 0;
     }
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.07.16
-  * brief:      读取文件头
-******************************************************************************/
+
 void MyTcpThread::GetFileHead(quint16 addr,QByteArray msg)
 {
     SendVerify = msg.mid(0,16);
@@ -135,15 +98,10 @@ void MyTcpThread::GetFileHead(quint16 addr,QByteArray msg)
     BytesRead = 0;
     file = new QFile(QString(TMP).append(detail.at(1)));
     if(!file->open(QFile::ReadWrite)) {
-        PutBlock(addr,HeadError,file->errorString().toUtf8());
+        PutBlock(addr,FILE_HEAD_ERROR,file->errorString().toUtf8());
     }
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.07.16
-  * brief:      读取文件
-******************************************************************************/
+
 void MyTcpThread::GetFileData(quint16 addr,QByteArray msg)
 {
     int ret;
@@ -152,6 +110,7 @@ void MyTcpThread::GetFileData(quint16 addr,QByteArray msg)
     else
         return;
     BytesRead += ret;
+    Display(QString("已接收%1K").arg(BytesRead/1024).toUtf8());
     if (BytesRead == BytesToRead) {
         file->seek(0);
         RecvVerify = QCryptographicHash::hash(file->readAll(),QCryptographicHash::Md5);
@@ -162,23 +121,18 @@ void MyTcpThread::GetFileData(quint16 addr,QByteArray msg)
             QProcess::execute("sync");
             QString cmd = QString("mv %1 %2").arg(file->fileName()).arg(NET);
             QProcess::execute(cmd);
-            PutBlock(addr,DataSuccess,"NULL");
-            qDebug() << "Put Data Success";
+            Display("接收成功");
+            PutBlock(addr,FILE_SUCCESS,"NULL");
         } else {
             QString cmd = QString("rm %1").arg(file->fileName());
             QProcess::execute(cmd);
-            PutBlock(addr,DataError,"NULL");
-            qDebug() << "Put Data Error";
+            Display("接收失败");
+            PutBlock(addr,FILE_ERROR,"NULL");
         }
         return;
     }
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.07.16
-  * brief:      写数据
-******************************************************************************/
+
 void MyTcpThread::PutBlock(quint16 addr, quint16 cmd, QByteArray data)
 {
     QByteArray msg;
@@ -189,19 +143,13 @@ void MyTcpThread::PutBlock(quint16 addr, quint16 cmd, QByteArray data)
     out<<(qint64)(msg.size()-sizeof(qint64));
     this->write(msg);
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.07.16
-  * brief:      发送文件头
-******************************************************************************/
+
 void MyTcpThread::PutFileHead(QByteArray data)
 {
     QString name = data;
     file = new QFile(name);
     if (!file->open(QFile::ReadOnly)) {
-        PutBlock(ADDR,HeadError,file->errorString().toUtf8());
-        qDebug() << "open file error!" << file->errorString();
+        PutBlock(ADDR,FILE_HEAD_ERROR,file->errorString().toUtf8());
         return;
     }
     QByteArray msg;
@@ -209,101 +157,64 @@ void MyTcpThread::PutFileHead(QByteArray data)
     file->seek(0);
     msg.append(QString(" %1 ").arg(file->size()));
     msg.append(name.right(name.size()- name.lastIndexOf('/')-1));
-    PutBlock(ADDR,HeadMsg,msg);
+    PutBlock(ADDR,FILE_HEAD,msg);
     BytesToWrite = file->size();
-    BytesWritten = 0;
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.07.16
-  * brief:      发送文件
-******************************************************************************/
-void MyTcpThread::PutFileData(qint64 numBytes)
+
+void MyTcpThread::PutFileData(qint64 )
 {
     if (BytesToWrite == 0)
         return;
-    BytesWritten += (int)numBytes;
-    PutBlock(quint16(ADDR),quint16(DataMsg),file->read(LoadSize));
+    PutBlock(quint16(ADDR),quint16(FILE_DATA),file->read(LoadSize));
     BytesToWrite -= (int)qMin(BytesToWrite,LoadSize);
+    Display(QString("剩余%1K").arg(BytesToWrite/1024).toUtf8());
     if (BytesToWrite == 0)
         file->close();
     count = 0;
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.07.16
-  * brief:      命令执行
-******************************************************************************/
+
 void MyTcpThread::ExcuteCmd(quint16 addr, quint16 cmd, QByteArray data)
 {
-//    qDebug()<<addr<<cmd<<data;
     timer->stop();
     count = 0;
     switch (cmd) {
-    case ClientLogin:
-        InitString.clear();
-        InitString.append("AIP00001 ");
-        InitString.append(getHardwareAddress());
-        InitString.append(" V-1.1");
-        PutBlock(ADDR,ClientLogin,InitString.toUtf8());
-        Display("连接服务器成功\n");
+    case ONLINE_DEVICES:
+        emit SendCommand(addr,cmd,data);
         break;
-    case ClientLoginError:
-        Display(data);
-        break;
-    case LocalLogin:
-        InitString.clear();
-        InitString.append(User);
-        InitString.append(" ");
-        InitString.append(getHardwareAddress());
-        InitString.append(" ");
-        InitString.append(Version);
-        PutBlock(ADDR,LocalLogin,InitString.toUtf8());
-        Display("连接服务器成功\n");
-        Display("验证用户名和密码...\n");
-        break;
-    case LocalLoginError:
-        emit TransformCmd(addr,cmd,data);
-        break;
-    case LocalLoginSuccess:
-        emit TransformCmd(addr,cmd,data);
-        break;
-    case ServerGetHead:
-        PutFileHead(data);
-        break;
-    case ClientGetHead:
-        qDebug()<<"ClientGetHead"<<data;
-        this->PutBlock(ADDR,ClientGetHead,data);
-        break;
-    case HeadMsg:
-        GetFileHead(addr,data);
-        break;
-    case HeadError:
-        Display(data);
-        break;
-    case DataMsg:
-        GetFileData(addr,data);
-        break;
-    case DataError:
-        Display(data);
-        break;
-    case CmdMsg:
+    case SHELL_CMD:
         proc->start(data);
         proc->waitForFinished();
-        PutBlock(quint16(addr),CmdSuccess,proc->readAll());
+        PutBlock(quint16(addr),SHELL_DAT,proc->readAll());
         break;
-    case CmdSuccess:
-        Display(data);
+    case SHELL_DAT:
+    case SERVER_FILES:
+        emit SendCommand(addr,cmd,data);
         break;
-    case ListMsg:
-        emit TransformCmd(addr,cmd,data);
+    case GUEST_PUT_HEAD:
+        TramsmitAddr = addr;
+        PutFileHead(data);
         break;
-    case ListError:
+    case GUEST_GET_HEAD:
+        TramsmitAddr = addr;
+        PutBlock(ADDR,GUEST_GET_HEAD,data);
         break;
-    case SocketDisplay:
-        emit TransformCmd(addr,cmd,data);
+    case GUEST_DISPLAY:
+        emit SendCommand(ADDR,GUEST_DISPLAY,data);
+        break;
+    case FILE_SUCCESS:
+        Display("发送成功");
+        if (TramsmitAddr != ADDR)
+            PutBlock(TramsmitAddr,FILE_SUCCESS,NULL);
+        else
+            PutBlock(ADDR,SERVER_FILES,"168912000X");
+        break;
+    case FILE_HEAD:
+        GetFileHead(addr,data);
+        break;
+    case FILE_DATA:
+        GetFileData(addr,data);
+        break;
+    case HEART_BEAT:
         break;
     default:
         qDebug()<<addr<<cmd<<data;
@@ -311,46 +222,31 @@ void MyTcpThread::ExcuteCmd(quint16 addr, quint16 cmd, QByteArray data)
     }
     timer->start(10000);
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.07.16
-  * brief:      获取硬件地址
-******************************************************************************/
+
 QString MyTcpThread::getHardwareAddress()
 {
-    int i;
     QList<QNetworkInterface> list = QNetworkInterface::allInterfaces();
-    for (i=0; i<list.size(); i++) {
-        if (list[i].hardwareAddress().size() == 17 && list[i].hardwareAddress() != "00:00:00:00:00:00")
+    for (int i=0; i<list.size(); i++) {
+        if (list[i].hardwareAddress() == "00:00:00:00:00:00")
+            continue;
+        if (list[i].hardwareAddress().size() == 17)
             return list[i].hardwareAddress();
     }
-    return list[0].hardwareAddress();
+    return "00:00:00:00:00:00";
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.07.16
-  * brief:      输出错误信息
-******************************************************************************/
+
 void MyTcpThread::Error(QAbstractSocket::SocketError socketError)
 {
     Display(this->errorString().toUtf8());
     if (socketError == QAbstractSocket::RemoteHostClosedError)
         return;
-    qDebug()<<"error:"<<this->errorString(); //输出错误信息
     this->close();
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.07.16
-  * brief:      显示
-******************************************************************************/
+
 void MyTcpThread::Display(QByteArray msg)
 {
-    if (TramsmitAddr != this->peerPort())
-        emit TransformCmd(TramsmitAddr,SocketDisplay,msg);
+    if (TramsmitAddr != ADDR)
+        PutBlock(TramsmitAddr,GUEST_DISPLAY,msg);
     else
-        emit TransformCmd(ADDR,SocketDisplay,msg);
+        emit SendCommand(ADDR,GUEST_DISPLAY,msg);
 }

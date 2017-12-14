@@ -14,10 +14,12 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         WinClient.cpp \
-    MyTcpThread.cpp
+    MyTcpThread.cpp \
+    TcpClient.cpp
 
 HEADERS  += WinClient.h \
-    MyTcpThread.h
+    MyTcpThread.h \
+    TcpClient.h
 
 FORMS    += WinClient.ui
 

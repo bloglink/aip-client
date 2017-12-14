@@ -6,310 +6,257 @@ WinClient::WinClient(QWidget *parent) :
     ui(new Ui::WinClient)
 {
     ui->setupUi(this);
-    WinInit();
-    KeyInit();
-    DatInit();
-    TcpInit();
+    InitWindows();
+    InitButtons();
+    InitClient();
 }
 
 WinClient::~WinClient()
 {
+    tcp->quit();
+    tcp->wait();
     delete ui;
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.03.24
-  * brief:      界面初始化
-******************************************************************************/
-void WinClient::WinInit()
+
+void WinClient::InitWindows()
 {
-#ifndef LOCAL
-    ui->tabTcp->horizontalHeader()->setResizeMode(QHeaderView::Stretch);
-#else
     ui->tabTcp->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-#endif
     ui->tabTcp->setRowCount(W_ROW);
     for (int i=0; i<W_ROW*W_COL; i++) {
         ui->tabTcp->setItem(i/W_COL,i%W_COL,new QTableWidgetItem);
         ui->tabTcp->item(i/W_COL,i%W_COL)->setTextAlignment(Qt::AlignCenter);
     }
+    this->setWindowTitle("二代服务端V-0.1.170328");
+
+    files = new QFileSystemModel(this);
+    files->setFilter(QDir::AllEntries | QDir::NoDotAndDotDot);
+    ui->LocalFiles->setModel(files);
+    ui->LocalFiles->setRootIndex(files->setRootPath("/home/link"));
+    ui->LocalFiles->hideColumn(3);
+    ui->LocalFiles->hideColumn(2);
+    ui->LocalFiles->hideColumn(1);
+    isFiles = false;
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.03.24
-  * brief:      更新显示
-******************************************************************************/
+
 void WinClient::WinUpdate(QByteArray msg)
 {
     QString Item = msg;
-    QStringList ItemText = Item.split("@@");
+    QStringList ItemText = Item.split("\n", QString::SkipEmptyParts);
     for (int i=0; i<W_ROW*W_COL; i++) {
         ui->tabTcp->item(i/W_COL,i%W_COL)->setText("");
     }
     for (int i=0; i<ItemText.size(); i++) {
-        QStringList row = ItemText.at(i).split(" ");
+        QStringList row = ItemText.at(i).split("@@",QString::SkipEmptyParts);
         for (int j=0; j<row.size(); j++) {
             ui->tabTcp->item(i,j)->setText(row.at(j));
         }
     }
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.03.24
-  * brief:      按键初始化
-******************************************************************************/
-void WinClient::KeyInit()
+
+void WinClient::InitButtons()
 {
-    connect(ui->KeyFileLocalGet,  SIGNAL(clicked(bool)),  this,SLOT(TcpFileLocalGet()));
-    connect(ui->EditFileLocalGet, SIGNAL(returnPressed()),this,SLOT(TcpFileLocalGet()));
-    connect(ui->KeyFileLocalPut,  SIGNAL(clicked(bool)),  this,SLOT(TcpFileLocalPut()));
-    connect(ui->EditFileLocalPut, SIGNAL(returnPressed()),this,SLOT(TcpFileLocalPut()));
-    connect(ui->KeyFileClientGet, SIGNAL(clicked(bool)),  this,SLOT(TcpFileClientGet()));
-    connect(ui->EditFileClientGet,SIGNAL(returnPressed()),this,SLOT(TcpFileClientGet()));
-    connect(ui->KeyFileClientPut, SIGNAL(clicked(bool)),  this,SLOT(TcpFileClientPut()));
-    connect(ui->EditFileClientPut,SIGNAL(returnPressed()),this,SLOT(TcpFileClientPut()));
-
-    connect(ui->KeyCmdSystem, SIGNAL(clicked(bool)),  this,SLOT(TcpCmdSystem()));
-    connect(ui->EditCmdSystem,SIGNAL(returnPressed()),this,SLOT(TcpCmdSystem()));
-
-    connect(ui->KeyLogin,SIGNAL(clicked(bool)),this,SLOT(TcpStart()));
-    connect(ui->EditUser,SIGNAL(returnPressed()),this,SLOT(TcpStart()));
-    connect(ui->EditPassword,SIGNAL(returnPressed()),this,SLOT(TcpStart()));
-
-    connect(ui->KeyExit,SIGNAL(clicked(bool)),this,SLOT(close()));
+    connect(ui->BtnLogin,SIGNAL(clicked(bool)),this,SLOT(Login()));
+    connect(ui->BtnExit,SIGNAL(clicked(bool)),this,SLOT(close()));
+    connect(ui->ShellCommand,SIGNAL(editingFinished()),this,SLOT(SendShellCommand()));
+    connect(ui->LocalToServer,SIGNAL(clicked(bool)),this,SLOT(SendLocalFile()));
+    connect(ui->ServerToLocal,SIGNAL(clicked(bool)),this,SLOT(ReadServerFile()));
+    connect(ui->ServerToClient,SIGNAL(clicked(bool)),this,SLOT(SendServerFile()));
+    connect(ui->ClientToServer,SIGNAL(clicked(bool)),this,SLOT(SendClientFile()));
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.03.24
-  * brief:      数据初始化
-******************************************************************************/
-void WinClient::DatInit()
-{
-    set = new QSettings("./default.ini",QSettings::IniFormat);
-    set->setIniCodec("GB18030");
-    set->beginGroup("Client");
 
-    ui->EditFileLocalGet->setText(set->value("LOCALGET","network/aip").toString());
-    ui->EditFileLocalPut->setText(set->value("LOCALPUT","network/aip").toString());
-    ui->EditFileClientGet->setText(set->value("CLIENTGET","network/aip").toString());
-    ui->EditFileClientPut->setText(set->value("CLIENTPUT","/mnt/aip").toString());
-    ui->EditCmdSystem->setText(set->value("CMDSYSTEM","ls").toString());
-
-    timer = new QTimer(this);
-    connect(timer,SIGNAL(timeout()),this,SLOT(TcpGetListMsg()));
-}
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.03.24
-  * brief:      数据保存
-******************************************************************************/
-void WinClient::DatSave()
-{
-    set->setValue("LOCALGET",ui->EditFileLocalGet->text());
-    set->setValue("LOCALPUT",ui->EditFileLocalPut->text());
-    set->setValue("CLIENTGET",ui->EditFileClientGet->text());
-    set->setValue("CLIENTPUT",ui->EditFileClientPut->text());
-    set->setValue("CMDSYSTEM",ui->EditCmdSystem->text());
-}
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.03.24
-  * brief:      网络初始化
-******************************************************************************/
-void WinClient::TcpInit()
+void WinClient::InitClient()
 {
     tcp = new QThread(this);
-    MyTcpThread *tcpThread = new MyTcpThread;
-    tcpThread->moveToThread(tcp);
-    connect(tcp, SIGNAL(started()), tcpThread,SLOT(TcpInit()));
-    connect(tcp, SIGNAL(finished()),tcpThread,SLOT(TcpQuit()));
-    connect(tcpThread,SIGNAL(TransformCmd(quint16,quint16,QByteArray)),this,SLOT(ExcuteCmd(quint16,quint16,QByteArray)));
-    connect(this,SIGNAL(PutBlock(quint16,quint16,QByteArray)),tcpThread,SLOT(PutBlock(quint16,quint16,QByteArray)));
+    MyTcpThread *s = new MyTcpThread;
+    s->moveToThread(tcp);
+    connect(tcp,SIGNAL(started()), s,SLOT(TcpInit()));
+    connect(tcp,SIGNAL(finished()),s,SLOT(TcpQuit()));
+    connect(s,SIGNAL(SendCommand(quint16,quint16,QByteArray)),this,
+            SLOT(ExcuteCmd(quint16,quint16,QByteArray)));
+    connect(this,SIGNAL(PutBlock(quint16,quint16,QByteArray)),s,SLOT(PutBlock(quint16,quint16,QByteArray)));
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.03.24
-  * brief:      网络登录登出
-******************************************************************************/
-void WinClient::TcpStart()
+
+void WinClient::Login()
 {
-    if (ui->KeyLogin->text() == tr("登录"))
-        TcpLogin();
-    else
-        TcpLogout();
+    if (ui->BtnLogin->text() == tr("登录")) {
+        ui->BtnLogin->setText(tr("断开"));
+        tcp->start();
+    } else {
+        ui->BtnLogin->setText(tr("登录"));
+        WinUpdate(NULL);
+        tcp->quit();
+        tcp->wait();
+    }
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.03.24
-  * brief:      网络登录
-******************************************************************************/
-void WinClient::TcpLogin()
-{
-    QStringList temp;
-    ui->KeyLogin->setText(tr("断开"));
-    temp.append(ui->EditUser->text());
-    temp.append(ui->EditPassword->text());
-    set->setValue("HOST","s.aipuo.com");
-    set->setValue("USER",temp.join("@@"));
-    set->setValue("VERSION","V0.1");
-    set->sync();
-    tcp->start();
-}
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.03.24
-  * brief:      网络登出
-******************************************************************************/
-void WinClient::TcpLogout()
-{
-    ui->KeyLogin->setText(tr("登录"));
-    WinUpdate(NULL);
-    timer->stop();
-    tcp->quit();
-    tcp->wait();
-}
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.03.24
-  * brief:      获取在线列表
-******************************************************************************/
-void WinClient::TcpGetListMsg()
-{
-    emit PutBlock(ADDR,ListMsg,"NULL");
-}
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.03.24
-  * brief:      本地下载
-******************************************************************************/
-void WinClient::TcpFileLocalGet()
-{
-    emit PutBlock(ADDR,ClientGetHead,ui->EditFileLocalGet->text().toUtf8());
-}
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.03.24
-  * brief:      本地上传
-******************************************************************************/
-void WinClient::TcpFileLocalPut()
-{
-    emit PutBlock(ADDR,ServerGetHead,ui->EditFileLocalPut->text().toUtf8());
-}
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.03.24
-  * brief:      客户下载
-******************************************************************************/
-void WinClient::TcpFileClientGet()
-{
-    int ret = ui->tabTcp->currentRow();
-    if (ret < 0)
-        return;
-    if (ui->EditFileClientGet->text().isEmpty())
-        return;
-    quint16 port = quint16(ui->tabTcp->item(ret,0)->text().toInt());
-    QByteArray name = ui->EditFileClientGet->text().toUtf8();
-    emit PutBlock(quint16(port),quint16(ClientGetHead),name);
-}
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.03.24
-  * brief:      客户上传
-******************************************************************************/
-void WinClient::TcpFileClientPut()
-{
-    int ret = ui->tabTcp->currentRow();
-    if (ret < 0)
-        return;
-    if (ui->EditFileClientGet->text().isEmpty())
-        return;
-    quint16 port = quint16(ui->tabTcp->item(ret,0)->text().toInt());
-    QByteArray name = ui->EditFileClientGet->text().toUtf8();
-    emit PutBlock(quint16(port),quint16(ServerGetHead),name);
-}
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.03.24
-  * brief:      发送系统命令
-******************************************************************************/
-void WinClient::TcpCmdSystem()
-{
-    int ret = ui->tabTcp->currentRow();
-    if (ret < 0)
-        return;
-    if (ui->EditCmdSystem->text().isEmpty())
-        return;
-    quint16 port = quint16(ui->tabTcp->item(ret,0)->text().toInt());
-    QByteArray cmd = ui->EditCmdSystem->text().toUtf8();
-    emit PutBlock(quint16(port),quint16(CmdMsg),cmd);
-}
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.03.24
-  * brief:      显示信息
-******************************************************************************/
-void WinClient::TcpDisplay(QString msg)
-{
-    ui->Text->insertPlainText(msg);
-    ui->Text->moveCursor(QTextCursor::End);
-}
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.03.24
-  * brief:      执行命令
-******************************************************************************/
+
 void WinClient::ExcuteCmd(quint16 addr, quint16 cmd, QByteArray msg)
 {
     switch (cmd) {
-    case LocalLoginError:
-        this->TcpDisplay(msg);
-        TcpLogout();
-        break;
-    case LocalLoginSuccess:
-        this->TcpDisplay("用户名和密码验证成功\n");
-        timer->start(10000);
-        TcpGetListMsg();
-        break;
-    case ListMsg:
+    case ONLINE_DEVICES:
         this->WinUpdate(msg);
         break;
-    case ListError:
+    case SHELL_DAT:
+        if (isFiles) {
+            isFiles = false;
+            ReadClientFiles(msg);
+        } else {
+            ui->Text->setText(msg);
+        }
         break;
-    case SocketDisplay:
-        this->TcpDisplay(msg);
+    case SERVER_FILES:
+        ReadServerFiles(msg);
+        break;
+    case GUEST_DISPLAY:
+        ui->Text->setText(msg);
         break;
     default:
         qDebug()<<addr<<cmd<<msg;
         break;
     }
 }
-/******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.03.24
-  * brief:      退出保存
-******************************************************************************/
-void WinClient::closeEvent(QCloseEvent *e)
+
+void WinClient::SendShellCommand()
 {
-    DatSave();
-    tcp->quit();
-    tcp->wait();
-    e->accept();
+    if (ui->TextPort->text().isEmpty())
+        return;
+    if (ui->ShellCommand->text().isEmpty())
+        return;
+    QByteArray msg = ui->ShellCommand->text().toUtf8();
+    emit PutBlock(ui->TextPort->text().toInt(),SHELL_CMD,msg);
+}
+
+void WinClient::ReadServerFiles(QByteArray msg)
+{
+    ui->ServerFiles->clear();
+    QString temp = msg;
+    QStringList FileList = temp.split("\n",QString::SkipEmptyParts);
+    for (int i=0; i<FileList.size(); i++) {
+        QString t = FileList.at(i);
+        if (t.endsWith("@") || t.endsWith("|") || t.endsWith("=") || t == "./") {
+            continue;
+        }
+        QTreeWidgetItem *item = new QTreeWidgetItem;
+        if (t.endsWith("/")) {
+            item->setText(0, t.remove("/"));
+            QPixmap pixmap(":/source/dir.png");
+            item->setIcon(0, pixmap);
+            item->setText(1, "文件夹");
+        } else if (t.endsWith("*")) {
+            item->setText(0, t.remove("*"));
+            QPixmap pixmap(":/source/link.png");
+            item->setIcon(0, pixmap);
+            item->setText(1, "文件");
+        } else {
+            item->setText(0, t.remove("*"));
+            QPixmap pixmap(":/source/file.png");
+            item->setIcon(0, pixmap);
+            item->setText(1, "文件");
+        }
+        ui->ServerFiles->addTopLevelItem(item);
+    }
+}
+
+void WinClient::ReadClientFiles(QByteArray msg)
+{
+    ui->ClientFiles->clear();
+    QString temp = msg;
+    QStringList FileList = temp.split("\n",QString::SkipEmptyParts);
+    for (int i=0; i<FileList.size(); i++) {
+        QString t = FileList.at(i);
+        if (t.endsWith("@") || t.endsWith("|") || t.endsWith("=") || t == "./") {
+            continue;
+        }
+        QTreeWidgetItem *item = new QTreeWidgetItem;
+        if (t.endsWith("/")) {
+            item->setText(0, t.remove("/"));
+            QPixmap pixmap(":/source/dir.png");
+            item->setIcon(0, pixmap);
+            item->setText(1, "文件夹");
+        } else if (t.endsWith("*")) {
+            item->setText(0, t.remove("*"));
+            QPixmap pixmap(":/source/link.png");
+            item->setIcon(0, pixmap);
+            item->setText(1, "文件");
+        } else {
+            item->setText(0, t.remove("*"));
+            QPixmap pixmap(":/source/file.png");
+            item->setIcon(0, pixmap);
+            item->setText(1, "文件");
+        }
+        ui->ClientFiles->addTopLevelItem(item);
+    }
+}
+
+void WinClient::SendLocalFile()
+{
+    emit PutBlock(ADDR,GUEST_PUT_HEAD,ui->LocalFile->text().toUtf8());
+}
+
+void WinClient::SendServerFile()
+{
+    if (ui->TextPort->text().isEmpty())
+        return;
+    if (ui->ServerFile->text().isEmpty())
+        return;
+    QString name = ui->ServerFile->text().toUtf8();
+    name.insert(0,"168912000X/");
+    emit PutBlock(ui->TextPort->text().toInt(),GUEST_GET_HEAD,name.toUtf8());
+}
+
+void WinClient::SendClientFile()
+{
+    if (ui->TextPort->text().isEmpty())
+        return;
+    if (ui->ClientFile->text().isEmpty())
+        return;
+    QString name = ui->ClientFile->text().toUtf8();
+    emit PutBlock(ui->TextPort->text().toInt(),GUEST_PUT_HEAD,name.toUtf8());
+}
+
+void WinClient::ReadServerFile()
+{
+    QString name = ui->ServerFile->text().toUtf8();
+    name.insert(0,"168912000X/");
+    emit PutBlock(ADDR,GUEST_GET_HEAD,name.toUtf8());
+}
+
+void WinClient::on_tabTcp_clicked(const QModelIndex &index)
+{
+    ui->TextPort->setText(ui->tabTcp->item(index.row(),0)->text());
+    ui->ClientFile->setText("/");
+    QString msg = QString("ls -aF %1").arg(ui->ClientFile->text());
+    emit PutBlock(ui->TextPort->text().toInt(),SHELL_CMD,msg.toUtf8());
+    isFiles = true;
+}
+
+void WinClient::on_LocalFiles_clicked(const QModelIndex &index)
+{
+    ui->LocalFile->setText(files->filePath(index));
+}
+
+void WinClient::on_ServerFiles_clicked(const QModelIndex &)
+{
+    QString name = ui->ServerFiles->currentItem()->text(0);
+    ui->ServerFile->setText(name);
+}
+
+void WinClient::on_ClientFiles_clicked(const QModelIndex &)
+{
+    QString temp = ui->ClientFiles->currentItem()->text(1);
+    QString name = ui->ClientFiles->currentItem()->text(0);
+    int t = ui->ClientFile->text().lastIndexOf("/");
+    QString path = ui->ClientFile->text().mid(0,t);
+    if (temp == "文件夹") {
+        int t = path.lastIndexOf("/");
+        if (name == "..")
+            ui->ClientFile->setText(path.mid(0,t) + "/");
+        else
+            ui->ClientFile->setText(path.append("/").append(name).append("/"));
+
+        QString msg = QString("ls -aF %1").arg(path);
+        emit PutBlock(ui->TextPort->text().toInt(),SHELL_CMD,msg.toUtf8());
+        isFiles = true;
+    }
+    if (temp == "文件")
+        ui->ClientFile->setText(path + "/" + name);
 }
